@@ -5,23 +5,14 @@ import cv2
 import numpy as np
 
 
-COLOR_RANGES = {
-    "red": ((0, 120, 70), (10, 255, 255)),
-    "blue": ((100, 150, 0), (140, 255, 255)),
-    "green": ((40, 40, 40), (80, 255, 255)),
-    "lightBlue": ((85, 50, 50), (125, 255, 255)),
-    "yellow": ((25, 100, 175), (35, 255, 255)),
-    "pink": ((140, 100, 100), (170, 255, 255)),
-    "black": ((0, 0, 0), (180, 255, 30)),
-    "white": ((0, 0, 200), (180, 20, 255)),
-}
+YELLOW_RANGE = ((25, 100, 175), (35, 255, 255))
 
 
 def locate_image() -> Path:
     script_default = Path(__file__).resolve().parent / "img_bird_scene.jpeg"
     cwd_default = Path.cwd() / "img_bird_scene.jpeg"
     default_path = cwd_default if cwd_default.exists() else script_default
-    parser = argparse.ArgumentParser(description="Detect colored objects in HSV.")
+    parser = argparse.ArgumentParser(description="Detect yellow object in HSV.")
     parser.add_argument("--image", type=str, default="", help="Path to input image")
     args = parser.parse_args()
     return Path(args.image) if args.image else default_path
@@ -67,12 +58,9 @@ def main():
     cv2.imshow("Original Image", preview)
 
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    for color_name, (low, high) in COLOR_RANGES.items():
-        mask = cv2.inRange(hsv_image, np.array(low), np.array(high))
-        cv2.imshow(f"{color_name}_mask", mask)
-
-    yellow_low, yellow_high = COLOR_RANGES["yellow"]
+    yellow_low, yellow_high = YELLOW_RANGE
     yellow_mask = cv2.inRange(hsv_image, np.array(yellow_low), np.array(yellow_high))
+    cv2.imshow("yellow_mask", yellow_mask)
     output = image.copy()
     for center_x, center_y in yellow_centers(yellow_mask):
         cv2.circle(output, (center_x, center_y), 5, (0, 0, 255), -1)

@@ -17,7 +17,7 @@ def kmeans_segmentation(image, k):
 
 
 def main():
-    default_path = Path(__file__).resolve().parent / "stone.jpg"
+    default_path = Path(__file__).resolve().parent / "random_cluster_test_6.jpg"
     custom = input(f"Image path (Enter = {default_path}): ").strip()
     image_path = Path(custom) if custom else default_path
 

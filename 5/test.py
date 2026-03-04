@@ -20,7 +20,7 @@ def region_growing_floodfill(image, seed_point, threshold):
 
 
 def main():
-    default_path = Path(__file__).resolve().parent / "sample.png"
+    default_path = Path(__file__).resolve().parent / "random_region_5.png"
     custom = input(f"Image path (Enter = {default_path}): ").strip()
     image_path = Path(custom) if custom else default_path
 

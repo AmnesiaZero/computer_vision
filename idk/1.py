@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from pathlib import Path
 
 def region_growing(image_path, seed_point, lo_diff=5, up_diff=5):
 
@@ -27,6 +28,9 @@ def region_growing(image_path, seed_point, lo_diff=5, up_diff=5):
     return flood_img, visited_mask
 
 
-img_path = 'C:\\Users\\Vovchik\\Desktop\\computerVision\\practice\\idk\\unnamed.jpg'
-seed = (142, 67) 
-region_growing(img_path, seed)
+if __name__ == "__main__":
+    default_path = Path(__file__).resolve().parent / "random_idk_scene.jpg"
+    custom = input(f"Image path (Enter = {default_path}): ").strip()
+    image_path = Path(custom) if custom else default_path
+    seed = (142, 67)
+    region_growing(str(image_path), seed)

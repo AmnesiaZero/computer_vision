@@ -2,6 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers import Dense, Flatten
 import matplotlib.pyplot as plt
+from pathlib import Path
+import argparse
 
 
 def load_mnist():
@@ -30,6 +32,8 @@ def build_model():
 
 
 def plot_history(history):
+    if history is None:
+        return
     plt.figure(figsize=(12, 4))
 
     plt.subplot(1, 2, 1)
@@ -51,16 +55,29 @@ def plot_history(history):
 
 
 def main():
-    (x_train, y_train), (x_test, y_test) = load_mnist()
-    model = build_model()
+    parser = argparse.ArgumentParser(description="MNIST MLP training/inference.")
+    parser.add_argument("--retrain", action="store_true", help="Force retraining even if saved model exists")
+    args = parser.parse_args()
 
-    history = model.fit(
-        x_train,
-        y_train,
-        epochs=20,
-        batch_size=32,
-        validation_split=0.1,
-    )
+    (x_train, y_train), (x_test, y_test) = load_mnist()
+    model_path = Path(__file__).resolve().parent / "mnist_mlp.keras"
+    history = None
+
+    if model_path.exists() and not args.retrain:
+        print(f"[INFO] Loading saved model: {model_path}")
+        model = keras.models.load_model(model_path)
+    else:
+        print("[INFO] Training new model...")
+        model = build_model()
+        history = model.fit(
+            x_train,
+            y_train,
+            epochs=20,
+            batch_size=32,
+            validation_split=0.1,
+        )
+        model.save(model_path)
+        print(f"[INFO] Model saved: {model_path}")
 
     loss, accuracy = model.evaluate(x_test, y_test)
     print(f"Loss: {loss}, Accuracy: {accuracy}")

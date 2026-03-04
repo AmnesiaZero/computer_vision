@@ -1,6 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from pathlib import Path
+import argparse
 
 
 def vgg_like(input_shape, classes):
@@ -87,7 +89,17 @@ def train_and_eval(model, x_train, y_train, x_test, y_test, epochs=2):
     return {"name": model.name, "accuracy": acc, "loss": loss, "params": params}
 
 
+def eval_only(model, x_test, y_test):
+    loss, acc = model.evaluate(x_test, y_test, verbose=0)
+    params = model.count_params()
+    return {"name": model.name, "accuracy": acc, "loss": loss, "params": params}
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Compare VGG-like, ResNet-like, DenseNet-like on CIFAR-100.")
+    parser.add_argument("--retrain", action="store_true", help="Force retraining even if saved models exist")
+    args = parser.parse_args()
+
     (x_train, y_train), (x_test, y_test) = keras.datasets.cifar100.load_data()
     y_train = y_train.squeeze()
     y_test = y_test.squeeze()
@@ -103,16 +115,28 @@ def main():
 
     input_shape = (32, 32, 3)
     classes = 100
-    models = [
-        vgg_like(input_shape, classes),
-        resnet_like(input_shape, classes),
-        densenet_like(input_shape, classes),
+    model_builders = [
+        ("VGG_like", lambda: vgg_like(input_shape, classes)),
+        ("ResNet_like", lambda: resnet_like(input_shape, classes)),
+        ("DenseNet_like", lambda: densenet_like(input_shape, classes)),
     ]
+    model_dir = Path(__file__).resolve().parent / "saved_models"
+    model_dir.mkdir(exist_ok=True)
 
     results = []
-    for model in models:
-        print(f"\nTraining {model.name} ...")
-        results.append(train_and_eval(model, x_train, y_train, x_test, y_test, epochs=2))
+    for model_name, builder in model_builders:
+        model_path = model_dir / f"{model_name}.keras"
+
+        if model_path.exists() and not args.retrain:
+            print(f"\n[INFO] Loading saved model: {model_path}")
+            model = keras.models.load_model(model_path)
+            results.append(eval_only(model, x_test, y_test))
+        else:
+            print(f"\nTraining {model_name} ...")
+            model = builder()
+            results.append(train_and_eval(model, x_train, y_train, x_test, y_test, epochs=2))
+            model.save(model_path)
+            print(f"[INFO] Model saved: {model_path}")
 
     print("\nComparison results:")
     for row in results:

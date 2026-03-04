@@ -2,6 +2,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
+from pathlib import Path
+import argparse
 
 
 def build_cnn(input_shape=(28, 28, 1), classes=10):
@@ -33,6 +35,8 @@ def load_data():
 
 
 def plot_history(history):
+    if history is None:
+        return
     plt.figure(figsize=(10, 4))
     plt.subplot(1, 2, 1)
     plt.plot(history.history["accuracy"], label="train")
@@ -52,16 +56,31 @@ def plot_history(history):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="MNIST CNN training/inference.")
+    parser.add_argument("--retrain", action="store_true", help="Force retraining even if saved model exists")
+    args = parser.parse_args()
+
     (x_train, y_train), (x_test, y_test) = load_data()
-    model = build_cnn()
-    history = model.fit(
-        x_train,
-        y_train,
-        validation_split=0.1,
-        epochs=5,
-        batch_size=64,
-        verbose=1,
-    )
+    model_path = Path(__file__).resolve().parent / "mnist_cnn.keras"
+    history = None
+
+    if model_path.exists() and not args.retrain:
+        print(f"[INFO] Loading saved model: {model_path}")
+        model = keras.models.load_model(model_path)
+    else:
+        print("[INFO] Training new model...")
+        model = build_cnn()
+        history = model.fit(
+            x_train,
+            y_train,
+            validation_split=0.1,
+            epochs=5,
+            batch_size=64,
+            verbose=1,
+        )
+        model.save(model_path)
+        print(f"[INFO] Model saved: {model_path}")
+
     loss, acc = model.evaluate(x_test, y_test, verbose=0)
     print(f"Test loss: {loss:.4f}, test accuracy: {acc:.4f}")
     plot_history(history)

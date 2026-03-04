@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from collections import deque
+from pathlib import Path
+import argparse
 
 
 def region_growing(image, seed_point, threshold):
@@ -41,15 +43,35 @@ def region_growing(image, seed_point, threshold):
 
 
 def main():
-    image_path = input("Enter path -> ").strip()
-    image_original = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    default_path = Path(__file__).resolve().parent / "img_region_growing_input_5.png"
+    parser = argparse.ArgumentParser(description="Region growing segmentation.")
+    parser.add_argument("--image", type=str, default="", help="Path to grayscale image")
+    parser.add_argument("--seed-x", type=int, default=-1, help="Seed X (row), -1 = center")
+    parser.add_argument("--seed-y", type=int, default=-1, help="Seed Y (col), -1 = center")
+    parser.add_argument("--threshold", type=int, default=25, help="Similarity threshold")
+    args = parser.parse_args()
+
+    image_path = Path(args.image) if args.image else default_path
+    image_original = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
     if image_original is None:
         print(f"Error: Could not load image from {image_path}")
         return
 
-    seed_point = (214, 210)
-    threshold = 220
+    rows, cols = image_original.shape
+    seed_x = rows // 2 if args.seed_x < 0 else args.seed_x
+    seed_y = cols // 2 if args.seed_y < 0 else args.seed_y
+    seed_point = (seed_x, seed_y)
+    threshold = args.threshold
+
+    print(f"[INFO] image={image_path}")
+    print(f"[INFO] seed={seed_point}, threshold={threshold}")
+
     segmented_image = region_growing(image_original, seed_point, threshold)
+    white_ratio = float(np.count_nonzero(segmented_image)) / segmented_image.size
+    print(f"[INFO] segmented white ratio: {white_ratio:.3f}")
+    print("[INFO] Press any key in image window to exit.")
+
+    cv2.imshow("Original Image", image_original)
     cv2.imshow("Segmented Image", segmented_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

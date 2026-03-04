@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+from pathlib import Path
+import argparse
 
 import cv2
 import numpy as np
@@ -28,17 +29,46 @@ def mean_shift_segmentation(image, spatial_radius=100, color_radius=20, max_leve
     return cv2.cvtColor(filtered, cv2.COLOR_Lab2BGR)
 
 
+def read_image_unicode_safe(path: Path):
+    image = cv2.imread(str(path))
+    if image is not None:
+        return image
+    try:
+        raw = np.fromfile(str(path), dtype=np.uint8)
+        if raw.size == 0:
+            return None
+        return cv2.imdecode(raw, cv2.IMREAD_COLOR)
+    except OSError:
+        return None
+
+
 def main():
     default_path = Path(__file__).resolve().parent / "img_mean_shift_input_6.jpg"
-    custom_path = input(f"Image path (Enter = {default_path}): ").strip()
-    image_path = Path(custom_path) if custom_path else default_path
+    parser = argparse.ArgumentParser(description="Mean-shift image segmentation.")
+    parser.add_argument("--image", type=str, default="", help="Path to input image")
+    parser.add_argument("--spatial", type=int, default=40, help="Spatial radius")
+    parser.add_argument("--color", type=int, default=20, help="Color radius")
+    parser.add_argument("--max-level", type=int, default=1, help="Pyramid max level")
+    args = parser.parse_args()
+    image_path = Path(args.image) if args.image else default_path
 
-    image = cv2.imread(str(image_path))
+    print(f"[INFO] Loading image: {image_path}")
+    image = read_image_unicode_safe(image_path)
     if image is None:
         raise FileNotFoundError(f"Could not load image: {image_path}")
 
-    # Keeps behavior close to original: mean-shift result is shown.
-    segmented = mean_shift_segmentation(image, spatial_radius=100, color_radius=20, max_level=2)
+    print(
+        f"[INFO] Running mean-shift: spatial={args.spatial}, "
+        f"color={args.color}, max_level={args.max_level}"
+    )
+    segmented = mean_shift_segmentation(
+        image,
+        spatial_radius=args.spatial,
+        color_radius=args.color,
+        max_level=args.max_level,
+    )
+    print("[INFO] Segmentation complete. Press any key in image window to exit.")
+    cv2.imshow("Original Image", image)
     cv2.imshow("Segmented Image", segmented)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

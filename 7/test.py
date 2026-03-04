@@ -6,12 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
-X, y = fetch_openml('Fashion-MNIST', version=1, return_X_y=True, as_frame=False)
-X = X.reshape(-1, 28, 28).astype(np.uint8)
-y = y.astype(int)
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=1000, test_size=1000, random_state=42, stratify=y)
-
 def extract_sift_features(images):
     sift = cv2.SIFT_create()
     features = []
@@ -31,61 +25,55 @@ def extract_haar_features(images):
         features.append(feat)
     return np.array(features)
 
-X_train_vec = X_train.reshape(len(X_train), -1)
-X_test_vec = X_test.reshape(len(X_test), -1)
 
-print("Извлечение SIFT признаков...")
-X_train_sift = extract_sift_features(X_train)
-X_test_sift = extract_sift_features(X_test)
-
-print("Извлечение Хаар-признаков...")
-X_train_haar = extract_haar_features(X_train)
-X_test_haar = extract_haar_features(X_test)
-clf = KNeighborsClassifier(n_neighbors=3)
-start = time.time()
-clf.fit(X_train_vec, y_train)
-y_pred_vec = clf.predict(X_test_vec)
-sklearn_vec_time = time.time() - start
-sklearn_vec_acc = accuracy_score(y_test, y_pred_vec)
-print(f"sklearn kNN (pixels): accuracy={sklearn_vec_acc:.3f}, time={sklearn_vec_time:.2f}s")
-
-clf = KNeighborsClassifier(n_neighbors=3)
-start = time.time()
-clf.fit(X_train_sift, y_train)
-y_pred_sift = clf.predict(X_test_sift)
-sklearn_sift_time = time.time() - start
-sklearn_sift_acc = accuracy_score(y_test, y_pred_sift)
-print(f"sklearn kNN (SIFT): accuracy={sklearn_sift_acc:.3f}, time={sklearn_sift_time:.2f}s")
-
-clf = KNeighborsClassifier(n_neighbors=3)
-start = time.time()
-clf.fit(X_train_haar, y_train)
-y_pred_haar = clf.predict(X_test_haar)
-sklearn_haar_time = time.time() - start
-sklearn_haar_acc = accuracy_score(y_test, y_pred_haar)
-print(f"sklearn kNN (Haar): accuracy={sklearn_haar_acc:.3f}, time={sklearn_haar_time:.2f}s")
-
-knn = cv2.ml.KNearest_create()
-start = time.time()
-knn.train(X_train_vec.astype(np.float32), cv2.ml.ROW_SAMPLE, y_train.astype(np.float32))
-_, y_pred_opencv, _, _ = knn.findNearest(X_test_vec.astype(np.float32), k=3)
-opencv_vec_time = time.time() - start
-opencv_vec_acc = accuracy_score(y_test, y_pred_opencv.ravel())
-print(f"OpenCV kNN (pixels): accuracy={opencv_vec_acc:.3f}, time={opencv_vec_time:.2f}s")
+def benchmark(name, x_train, y_train, x_test, y_test):
+    clf = KNeighborsClassifier(n_neighbors=3)
+    start = time.time()
+    clf.fit(x_train, y_train)
+    predicted = clf.predict(x_test)
+    elapsed = time.time() - start
+    acc = accuracy_score(y_test, predicted)
+    print(f"sklearn kNN ({name}): accuracy={acc:.3f}, time={elapsed:.2f}s")
 
 
-knn = cv2.ml.KNearest_create()
-start = time.time()
-knn.train(X_train_sift.astype(np.float32), cv2.ml.ROW_SAMPLE, y_train.astype(np.float32))
-_, y_pred_opencv, _, _ = knn.findNearest(X_test_sift.astype(np.float32), k=3)
-opencv_sift_time = time.time() - start
-opencv_sift_acc = accuracy_score(y_test, y_pred_opencv.ravel())
-print(f"OpenCV kNN (SIFT): accuracy={opencv_sift_acc:.3f}, time={opencv_sift_time:.2f}s")
+def benchmark_opencv(name, x_train, y_train, x_test, y_test):
+    knn = cv2.ml.KNearest_create()
+    start = time.time()
+    knn.train(x_train.astype(np.float32), cv2.ml.ROW_SAMPLE, y_train.astype(np.float32))
+    _, predicted, _, _ = knn.findNearest(x_test.astype(np.float32), k=3)
+    elapsed = time.time() - start
+    acc = accuracy_score(y_test, predicted.ravel())
+    print(f"OpenCV kNN ({name}): accuracy={acc:.3f}, time={elapsed:.2f}s")
 
-knn = cv2.ml.KNearest_create()
-start = time.time()
-knn.train(X_train_haar.astype(np.float32), cv2.ml.ROW_SAMPLE, y_train.astype(np.float32))
-_, y_pred_opencv, _, _ = knn.findNearest(X_test_haar.astype(np.float32), k=3)
-opencv_haar_time = time.time() - start
-opencv_haar_acc = accuracy_score(y_test, y_pred_opencv.ravel())
-print(f"OpenCV kNN (Haar): accuracy={opencv_haar_acc:.3f}, time={opencv_haar_time:.2f}s")
+
+def main():
+    X, y = fetch_openml("Fashion-MNIST", version=1, return_X_y=True, as_frame=False)
+    X = X.reshape(-1, 28, 28).astype(np.uint8)
+    y = y.astype(int)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, train_size=1000, test_size=1000, random_state=42, stratify=y
+    )
+
+    X_train_vec = X_train.reshape(len(X_train), -1)
+    X_test_vec = X_test.reshape(len(X_test), -1)
+
+    print("Extracting SIFT features...")
+    X_train_sift = extract_sift_features(X_train)
+    X_test_sift = extract_sift_features(X_test)
+
+    print("Extracting Haar-like features...")
+    X_train_haar = extract_haar_features(X_train)
+    X_test_haar = extract_haar_features(X_test)
+
+    benchmark("pixels", X_train_vec, y_train, X_test_vec, y_test)
+    benchmark("SIFT", X_train_sift, y_train, X_test_sift, y_test)
+    benchmark("Haar", X_train_haar, y_train, X_test_haar, y_test)
+
+    benchmark_opencv("pixels", X_train_vec, y_train, X_test_vec, y_test)
+    benchmark_opencv("SIFT", X_train_sift, y_train, X_test_sift, y_test)
+    benchmark_opencv("Haar", X_train_haar, y_train, X_test_haar, y_test)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,30 +1,35 @@
-import cv2 
+from pathlib import Path
 
-image = cv2.imread(r'C:\Users\Vovchik\Desktop\computerVision\practice\2\yellowBall.jpg') 
+import cv2
+import numpy as np
 
-hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV) 
 
-color_low = (25,60,160) 
-color_high = (60,255,255) 
+def main():
+    default_path = Path(__file__).resolve().parent / "yellowBall.jpg"
+    custom = input(f"Image path (Enter = {default_path}): ").strip()
+    image_path = Path(custom) if custom else default_path
 
-only_object = cv2.inRange(hsv_img, color_low, color_high) 
+    image = cv2.imread(str(image_path))
+    if image is None:
+        raise FileNotFoundError(f"Could not load image: {image_path}")
 
-moments = cv2.moments(only_object, 1) 
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, np.array((25, 60, 160)), np.array((60, 255, 255)))
 
-x_moment = moments['m01'] 
+    moments = cv2.moments(mask, True)
+    if moments["m00"] > 0:
+        x = int(moments["m10"] / moments["m00"])
+        y = int(moments["m01"] / moments["m00"])
+        cv2.putText(image, "Yellow ball", (x, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+        cv2.putText(image, f"{x}, {y}", (x, y + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+    else:
+        cv2.putText(image, "Object not found", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
-y_moment = moments['m10'] 
+    cv2.imshow("yellow_demo_moments", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-area = moments['m00'] 
- 
-x = int(x_moment / area) 
 
-y = int(y_moment / area) 
-
-cv2.putText(image, "Yellow ball", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2) 
-
-cv2.putText(image, "%d, %d" % (x,y), (x,y+30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,0,0), 2) 
-
-cv2.imshow('found', image) 
-cv2.waitKey(0) 
+if __name__ == "__main__":
+    main()
 

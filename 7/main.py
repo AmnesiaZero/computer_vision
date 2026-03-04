@@ -3,52 +3,67 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
 
-# Генерируем данные для трех классов
-np.random.seed(42) # Фиксируем seed для генератора случайных чисел, чтобы результаты были воспроизводимы. 42 - простое число
-class1_x = np.random.normal(loc=2, scale=1, size=50) # Генерируем 50 значений для координаты x первого класса, распределенных нормально со средним 2 и стандартным отклонением 1
-class1_y = np.random.normal(loc=2, scale=1, size=50) # Генерируем 50 значений для координаты y первого класса, распределенных нормально со средним 2 и стандартным отклонением 1
-class2_x = np.random.normal(loc=7, scale=1, size=50) # Аналогично для второго класса, среднее 7
-class2_y = np.random.normal(loc=7, scale=1, size=50) # Аналогично для второго класса, среднее 7
-class3_x = np.random.normal(loc=4, scale=1, size=50) # Аналогично для третьего класса, среднее 4
-class3_y = np.random.normal(loc=7, scale=1, size=50) # Аналогично для третьего класса, среднее 7
+def make_gaussian_class(center_x, center_y, size=50, spread=1.0):
+    x = np.random.normal(loc=center_x, scale=spread, size=size)
+    y = np.random.normal(loc=center_y, scale=spread, size=size)
+    return np.column_stack((x, y))
 
-# Объединяем данные и метки классов
-X = np.column_stack((np.concatenate((class1_x, class2_x, class3_x)), np.concatenate((class1_y, class2_y, class3_y)))) # объединяем координаты y всех классов в один массив
-# X теперь содержит все точки данных, каждая строка - это точка (x, y)
-y = np.concatenate((np.zeros(50), np.ones(50), 2 * np.ones(50))) # создаем массив меток классов: 0 для первого класса, 1 для второго, 2 для третьего
 
-# Разделяем данные на тренировочный и тестовый наборы
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42) # 20% данных - тестовые, 80% - тренировочные. random_state=42 гарантирует одинаковое разделение при каждом запуске
+def main():
+    np.random.seed(42)
+    class_a = make_gaussian_class(2, 2)
+    class_b = make_gaussian_class(7, 7)
+    class_c = make_gaussian_class(4, 7)
 
-# Обучаем модель k-NN (k=3)
-knn = KNeighborsClassifier(n_neighbors=5) # создаем объект классификатора k-NN с k=3 (3 ближайших соседа)
-knn.fit(X_train, y_train) # обучаем модель на тренировочных данных
+    X = np.vstack((class_a, class_b, class_c))
+    y = np.hstack(
+        (
+            np.zeros(len(class_a), dtype=int),
+            np.ones(len(class_b), dtype=int),
+            np.full(len(class_c), 2, dtype=int),
+        )
+    )
 
-# Предсказываем классы для тестового набора
-predictions = knn.predict(X_test) # предсказываем классы для тестовых данных
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-# Оцениваем точность
-accuracy = np.mean(predictions == y_test) # считаем долю правильных предсказаний
-print(f"Точность: {accuracy}")
+    model = KNeighborsClassifier(n_neighbors=5)
+    model.fit(X_train, y_train)
+    predicted = model.predict(X_test)
+    accuracy = np.mean(predicted == y_test)
+    print(f"Accuracy: {accuracy:.4f}")
 
-# Визуализация
-plt.figure(figsize=(8, 6)) # создаем график размером 8x6 дюймов
-plt.scatter(class1_x, class1_y, label='Класс 1', color='red') # отображаем точки первого класса красным
-plt.scatter(class2_x, class2_y, label='Класс 2', color='green') # отображаем точки второго класса зеленым
-plt.scatter(class3_x, class3_y, label='Класс 3', color='blue') # отображаем точки третьего класса синим
-plt.scatter(X_test[:, 0], X_test[:, 1], marker='x', color='black', label='Тестовые точки', s=100) # отображаем тестовые точки черными крестиками
+    plt.figure(figsize=(8, 6))
+    plt.scatter(class_a[:, 0], class_a[:, 1], label="Class 1", color="red")
+    plt.scatter(class_b[:, 0], class_b[:, 1], label="Class 2", color="green")
+    plt.scatter(class_c[:, 0], class_c[:, 1], label="Class 3", color="blue")
+    plt.scatter(
+        X_test[:, 0],
+        X_test[:, 1],
+        marker="x",
+        color="black",
+        label="Test points",
+        s=100,
+    )
 
-# Рисуем границы принятия решений (упрощенное представление)
-x_min, x_max = plt.xlim() # получаем границы области по x
-y_min, y_max = plt.ylim() # получаем границы области по y
-xx, yy = np.meshgrid(np.linspace(x_min, x_max, 100), np.linspace(y_min, y_max, 100)) # создаем сетку точек для построения границ
-Z = knn.predict(np.c_[xx.ravel(), yy.ravel()]) # предсказываем классы для каждой точки сетки
-Z = Z.reshape(xx.shape) # преобразуем предсказания в форму сетки
-plt.contourf(xx, yy, Z, alpha=0.2) # рисуем границы принятия решений с прозрачностью 0.2
+    x_min, x_max = plt.xlim()
+    y_min, y_max = plt.ylim()
+    grid_x, grid_y = np.meshgrid(
+        np.linspace(x_min, x_max, 100),
+        np.linspace(y_min, y_max, 100),
+    )
+    mesh_points = np.c_[grid_x.ravel(), grid_y.ravel()]
+    mesh_labels = model.predict(mesh_points).reshape(grid_x.shape)
+    plt.contourf(grid_x, grid_y, mesh_labels, alpha=0.2)
 
-plt.xlabel('X') # подпись оси x
-plt.ylabel('Y') # подпись оси y
-plt.title('Классификация точек методом k-NN') # заголовок графика
-plt.legend() # отображаем легенду
-plt.show() # показываем график
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.title("k-NN point classification")
+    plt.legend()
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
 

@@ -1,4 +1,4 @@
-import cv2
+﻿import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -31,7 +31,7 @@ def run_watershed(image_path: Path):
 
 
 def main():
-    default_path = Path(__file__).resolve().parent / "7.jpg"
+    default_path = Path(__file__).resolve().parent / "img_watershed_input_7.jpg"
     custom_path = input(f"Image path (Enter = {default_path}): ").strip()
     image_path = Path(custom_path) if custom_path else default_path
 
@@ -57,3 +57,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

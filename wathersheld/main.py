@@ -1,4 +1,4 @@
-import cv2
+﻿import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from pathlib import Path
@@ -47,7 +47,7 @@ def watershed_segmentation(image_path):
 
 
 def main():
-    default_path = Path(__file__).resolve().parent / "8.jpg"
+    default_path = Path(__file__).resolve().parent / "img_watershed_input_8.jpg"
     custom_path = input(f"Image path (Enter = {default_path}): ").strip()
     image_path = Path(custom_path) if custom_path else default_path
     watershed_segmentation(image_path)
@@ -55,3 +55,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

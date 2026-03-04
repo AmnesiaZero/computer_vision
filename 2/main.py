@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 
 import cv2
 import numpy as np
@@ -17,9 +18,30 @@ COLOR_RANGES = {
 
 
 def locate_image() -> Path:
-    default_path = Path(__file__).resolve().parent / "bird.jpeg"
-    user_input = input(f"Image path (Enter = {default_path}): ").strip()
-    return Path(user_input) if user_input else default_path
+    script_default = Path(__file__).resolve().parent / "img_bird_scene.jpeg"
+    cwd_default = Path.cwd() / "img_bird_scene.jpeg"
+    default_path = cwd_default if cwd_default.exists() else script_default
+    parser = argparse.ArgumentParser(description="Detect colored objects in HSV.")
+    parser.add_argument("--image", type=str, default="", help="Path to input image")
+    args = parser.parse_args()
+    return Path(args.image) if args.image else default_path
+
+
+def read_image_unicode_safe(path: Path):
+    """
+    OpenCV on Windows can fail on non-ASCII paths with cv2.imread.
+    Use fromfile + imdecode as a reliable fallback.
+    """
+    image = cv2.imread(str(path))
+    if image is not None:
+        return image
+    try:
+        raw = np.fromfile(str(path), dtype=np.uint8)
+        if raw.size == 0:
+            return None
+        return cv2.imdecode(raw, cv2.IMREAD_COLOR)
+    except OSError:
+        return None
 
 
 def yellow_centers(mask: np.ndarray):
@@ -35,7 +57,8 @@ def yellow_centers(mask: np.ndarray):
 
 def main():
     image_path = locate_image()
-    image = cv2.imread(str(image_path))
+    print(f"[INFO] Loading image: {image_path}")
+    image = read_image_unicode_safe(image_path)
     if image is None:
         raise FileNotFoundError(f"Could not load image: {image_path}")
 
@@ -64,9 +87,11 @@ def main():
         )
 
     cv2.imshow("Yellow Object Detection", output)
+    print("[INFO] OpenCV windows are shown. Press any key in an image window to exit.")
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     main()
+

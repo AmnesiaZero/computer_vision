@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import cv2
 import numpy as np
@@ -29,7 +29,7 @@ def mean_shift_segmentation(image, spatial_radius=100, color_radius=20, max_leve
 
 
 def main():
-    default_path = Path(__file__).resolve().parent / "random_cluster_6.jpg"
+    default_path = Path(__file__).resolve().parent / "img_mean_shift_input_6.jpg"
     custom_path = input(f"Image path (Enter = {default_path}): ").strip()
     image_path = Path(custom_path) if custom_path else default_path
 
@@ -46,3 +46,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
